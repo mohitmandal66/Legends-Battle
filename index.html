@@ -1,0 +1,6511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+
+<title>LEGENDS BATTLE</title>
+
+<style>
+
+/* =========================================================
+   RESET
+========================================================= */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#05070b;
+    font-family:Arial,Helvetica,sans-serif;
+    color:white;
+}
+
+button{
+    font-family:inherit;
+    touch-action:manipulation;
+}
+
+/* =========================================================
+   GAME
+========================================================= */
+
+#game{
+    position:fixed;
+    left:50%;
+    top:50%;
+
+    width:min(100vw,177.7778vh);
+    height:min(100vh,56.25vw);
+
+    transform:translate(-50%,-50%);
+
+    overflow:hidden;
+
+    background:#000;
+
+    box-shadow:
+        0 0 100px rgba(0,0,0,.85),
+        0 0 0 1px rgba(255,255,255,.04);
+
+    cursor:crosshair;
+
+    touch-action:none;
+
+    contain:layout paint;
+}
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+#camera{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    z-index:1;
+
+    pointer-events:none;
+}
+
+/* =========================================================
+   WORLD
+========================================================= */
+
+#world{
+    position:absolute;
+    left:0;
+    top:0;
+
+    height:100%;
+    width:100%;
+
+    will-change:transform;
+
+    transform:translate3d(0,0,0);
+}
+
+/* =========================================================
+   PANORAMA
+========================================================= */
+
+#panorama{
+    position:absolute;
+
+    left:0;
+    top:0;
+
+    height:100%;
+    width:auto;
+    max-width:none;
+
+    display:block;
+
+    pointer-events:none;
+
+    object-fit:cover;
+}
+
+/* =========================================================
+   ENEMY LAYER
+========================================================= */
+
+#enemyLayer{
+    position:absolute;
+
+    left:0;
+    top:0;
+
+    height:100%;
+
+    pointer-events:none;
+
+    contain:layout paint;
+}
+
+/* =========================================================
+   ENEMY
+========================================================= */
+
+.enemy{
+    position:absolute;
+
+    transform:translate3d(-50%,-100%,0);
+
+    width:78px;
+
+    pointer-events:auto;
+
+    cursor:crosshair;
+
+    transition:
+        filter .08s,
+        opacity .20s,
+        transform .14s;
+
+    z-index:20;
+
+    contain:layout paint;
+}
+
+.enemy img{
+    width:100%;
+    height:auto;
+
+    display:block;
+
+    object-fit:contain;
+
+    filter:
+        drop-shadow(
+            0 9px 8px rgba(0,0,0,.75)
+        );
+}
+
+.enemy:hover img{
+    filter:
+        brightness(1.15)
+        drop-shadow(
+            0 9px 10px rgba(0,0,0,.85)
+        );
+}
+
+.enemy.hit{
+    filter:brightness(2);
+}
+
+.enemy.dead{
+    opacity:0;
+
+    transform:
+        translate3d(-50%,-100%,0)
+        scale(.5);
+
+    pointer-events:none;
+}
+
+/* =========================================================
+   ENEMY HEALTH
+========================================================= */
+
+.enemy-health{
+    position:absolute;
+
+    left:7%;
+    right:7%;
+    top:-13px;
+
+    height:6px;
+
+    border-radius:20px;
+
+    background:rgba(0,0,0,.85);
+
+    border:1px solid rgba(255,255,255,.25);
+
+    overflow:hidden;
+}
+
+.enemy-health-fill{
+    width:100%;
+    height:100%;
+
+    background:
+        linear-gradient(
+            90deg,
+            #e52d2d,
+            #ff6b55
+        );
+
+    transition:width .10s linear;
+}
+
+/* =========================================================
+   WALL
+========================================================= */
+
+#wall{
+    position:absolute;
+
+    z-index:110;
+
+    left:0;
+    bottom:0;
+
+    width:100%;
+    height:28%;
+
+    object-fit:cover;
+    object-position:center bottom;
+
+    pointer-events:none;
+
+    filter:
+        drop-shadow(
+            0 -12px 15px rgba(0,0,0,.65)
+        );
+}
+
+#wallFallback{
+    position:absolute;
+
+    z-index:105;
+
+    left:0;
+    bottom:0;
+
+    width:100%;
+    height:24%;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(30,31,30,.1),
+            rgba(8,10,11,.97) 25%,
+            #07090b
+        );
+
+    pointer-events:none;
+}
+
+/* =========================================================
+   BALCONY
+========================================================= */
+
+#balconyEdge{
+    position:absolute;
+
+    z-index:112;
+
+    left:0;
+    bottom:24%;
+
+    width:100%;
+    height:4px;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(255,255,255,.15),
+            transparent
+        );
+
+    box-shadow:
+        0 -2px 10px rgba(0,0,0,.5);
+
+    pointer-events:none;
+}
+
+/* =========================================================
+   VIGNETTE
+========================================================= */
+
+#game::after{
+    content:"";
+
+    position:absolute;
+    inset:0;
+
+    z-index:155;
+
+    pointer-events:none;
+
+    background:
+        radial-gradient(
+            circle at center,
+            transparent 40%,
+            rgba(0,0,0,.30) 100%
+        );
+}
+
+/* =========================================================
+   PROJECTILE
+========================================================= */
+
+.projectile{
+    position:fixed;
+
+    width:38px;
+    height:4px;
+
+    border-radius:10px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #fff,
+            #ffd34d,
+            #ff6b00
+        );
+
+    box-shadow:
+        0 0 14px #ffb52e;
+
+    pointer-events:none;
+
+    z-index:300;
+
+    contain:layout paint;
+}
+
+/* =========================================================
+   HUD
+========================================================= */
+
+#hud{
+    position:absolute;
+
+    left:16px;
+    right:16px;
+    top:14px;
+
+    display:flex;
+
+    justify-content:space-between;
+    align-items:flex-start;
+
+    z-index:200;
+
+    pointer-events:none;
+}
+
+.hud-group{
+    display:flex;
+    gap:8px;
+}
+
+.hud-card{
+    min-width:105px;
+
+    padding:8px 13px;
+
+    border-radius:13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(8,13,20,.92),
+            rgba(23,30,40,.78)
+        );
+
+    border:
+        1px solid rgba(255,255,255,.16);
+
+    box-shadow:
+        0 8px 28px rgba(0,0,0,.35),
+        inset 0 1px 0 rgba(255,255,255,.05);
+
+    backdrop-filter:blur(12px);
+}
+
+.hud-label{
+    font-size:9px;
+
+    color:#8f9ca9;
+
+    letter-spacing:1px;
+
+    font-weight:bold;
+}
+
+.hud-value{
+    margin-top:3px;
+
+    font-size:19px;
+
+    font-weight:900;
+}
+
+#stars{
+    color:#ffd34e;
+    letter-spacing:2px;
+}
+
+/* =========================================================
+   FPS
+========================================================= */
+
+#fpsCard{
+    min-width:75px;
+}
+
+#fpsValue{
+    color:#63ef92;
+}
+
+#fpsValue.warning{
+    color:#ffd34e;
+}
+
+#fpsValue.bad{
+    color:#ff6565;
+}
+
+/* =========================================================
+   CROSSHAIR
+========================================================= */
+
+#crosshair{
+    position:absolute;
+
+    z-index:250;
+
+    width:40px;
+    height:40px;
+
+    transform:translate(-50%,-50%);
+
+    pointer-events:none;
+
+    will-change:left,top;
+}
+
+.cross-circle{
+    position:absolute;
+
+    inset:5px;
+
+    border:
+        2px solid rgba(255,255,255,.92);
+
+    border-radius:50%;
+}
+
+.cross-h{
+    position:absolute;
+
+    left:0;
+    right:0;
+
+    top:50%;
+
+    height:1px;
+
+    background:
+        rgba(255,255,255,.9);
+}
+
+.cross-v{
+    position:absolute;
+
+    top:0;
+    bottom:0;
+
+    left:50%;
+
+    width:1px;
+
+    background:
+        rgba(255,255,255,.9);
+}
+
+/* =========================================================
+   GUN
+========================================================= */
+
+#gun{
+    position:absolute;
+
+    z-index:180;
+
+    right:-3%;
+    left:auto;
+
+    bottom:-8%;
+
+    width:34%;
+    max-height:58%;
+
+    object-fit:contain;
+
+    transform:
+        translate3d(
+            var(--gun-x,0px),
+            var(--gun-y,0px),
+            0
+        )
+        scaleX(1);
+
+    transform-origin:center bottom;
+
+    pointer-events:none;
+
+    filter:
+        drop-shadow(
+            0 18px 13px rgba(0,0,0,.85)
+        );
+
+    transition:
+        left .18s ease,
+        right .18s ease;
+
+    /* IMPORTANT:
+       No gun recoil animation.
+       Gun stays stable.
+    */
+}
+
+/* =========================================================
+   FLIPPED GUN
+========================================================= */
+
+#gun.flipped{
+    left:-3%;
+    right:auto;
+
+    transform:
+        translate3d(
+            calc(var(--gun-x,0px) * -1),
+            var(--gun-y,0px),
+            0
+        )
+        scaleX(-1);
+}
+
+/* =========================================================
+   GAME ACTIONS
+========================================================= */
+
+#gameActions{
+    position:absolute;
+
+    right:18px;
+    bottom:18px;
+
+    z-index:500;
+
+    display:flex;
+
+    gap:8px;
+
+    align-items:center;
+}
+
+.game-action{
+    height:40px;
+
+    padding:0 14px;
+
+    border-radius:11px;
+
+    border:
+        1px solid rgba(255,255,255,.18);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(16,27,38,.96),
+            rgba(6,11,17,.96)
+        );
+
+    color:white;
+
+    font-size:9px;
+
+    font-weight:1000;
+
+    letter-spacing:.6px;
+
+    cursor:pointer;
+
+    box-shadow:
+        0 8px 28px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,255,255,.05);
+
+    backdrop-filter:blur(10px);
+
+    transition:
+        transform .15s,
+        background .15s,
+        border-color .15s;
+}
+
+.game-action:hover{
+    transform:translateY(-2px);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(35,50,68,.98),
+            rgba(8,14,22,.98)
+        );
+}
+
+.game-action:active{
+    transform:scale(.95);
+}
+
+#flipGunButton.flipped{
+    border-color:
+        rgba(255,210,70,.65);
+
+    color:#ffd34d;
+}
+
+#exitGame:hover{
+    background:
+        linear-gradient(
+            145deg,
+            #a92929,
+            #671919
+        );
+}
+
+/* =========================================================
+   FIRE SPRINKLE / MUZZLE EFFECT
+   ONLY AT NOZZLE
+========================================================= */
+
+#muzzleFlash{
+    position:absolute;
+
+    z-index:185;
+
+    right:16%;
+    left:auto;
+
+    bottom:28%;
+
+    width:95px;
+    height:95px;
+
+    transform:
+        translate(50%,50%)
+        scale(.1);
+
+    border-radius:50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(255,255,255,1) 0%,
+            rgba(255,238,130,.95) 12%,
+            rgba(255,157,25,.85) 30%,
+            rgba(255,72,0,.45) 48%,
+            transparent 72%
+        );
+
+    pointer-events:none;
+
+    opacity:0;
+
+    filter:
+        blur(.2px);
+
+    will-change:
+        transform,
+        opacity;
+}
+
+#muzzleFlash.left-side{
+    left:16%;
+    right:auto;
+
+    transform:
+        translate(-50%,50%)
+        scale(.1);
+}
+
+/* =========================================================
+   FIRE SPARK PARTICLE CONTAINER
+========================================================= */
+
+#fireParticles{
+    position:absolute;
+
+    inset:0;
+
+    z-index:186;
+
+    pointer-events:none;
+
+    overflow:hidden;
+}
+
+/* =========================================================
+   FIRE PARTICLE
+========================================================= */
+
+.fire-particle{
+    position:absolute;
+
+    width:5px;
+    height:5px;
+
+    border-radius:50%;
+
+    background:
+        radial-gradient(
+            circle,
+            #fff 0%,
+            #ffd34d 35%,
+            #ff7a00 65%,
+            transparent 100%
+        );
+
+    box-shadow:
+        0 0 8px #ffb52e;
+
+    pointer-events:none;
+
+    animation:
+        fireParticle .34s cubic-bezier(.15,.75,.35,1)
+        forwards;
+}
+
+@keyframes fireParticle{
+
+    0%{
+        opacity:1;
+
+        transform:
+            translate3d(0,0,0)
+            scale(1.2);
+    }
+
+    45%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+
+        transform:
+            translate3d(
+                var(--px),
+                var(--py),
+                0
+            )
+            scale(.15);
+    }
+}
+
+/* =========================================================
+   SMOOTH MUZZLE FLASH
+========================================================= */
+
+#muzzleFlash.fire{
+    animation:
+        nozzleFlashRight .12s ease-out
+        forwards;
+}
+
+#muzzleFlash.left-side.fire{
+    animation:
+        nozzleFlashLeft .12s ease-out
+        forwards;
+}
+
+@keyframes nozzleFlashRight{
+
+    0%{
+        opacity:1;
+
+        transform:
+            translate(50%,50%)
+            scale(.12);
+    }
+
+    100%{
+        opacity:0;
+
+        transform:
+            translate(50%,50%)
+            scale(1.25);
+    }
+}
+
+@keyframes nozzleFlashLeft{
+
+    0%{
+        opacity:1;
+
+        transform:
+            translate(-50%,50%)
+            scale(.12);
+    }
+
+    100%{
+        opacity:0;
+
+        transform:
+            translate(-50%,50%)
+            scale(1.25);
+    }
+}
+
+/* =========================================================
+   DAMAGE FLASH
+========================================================= */
+
+#damageFlash{
+    position:absolute;
+
+    inset:0;
+
+    z-index:170;
+
+    pointer-events:none;
+
+    background:
+        radial-gradient(
+            circle,
+            transparent 35%,
+            rgba(255,0,0,.48)
+        );
+
+    opacity:0;
+}
+
+#damageFlash.active{
+    animation:
+        damage .3s ease-out;
+}
+
+@keyframes damage{
+
+    0%{
+        opacity:0;
+    }
+
+    25%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+}
+
+/* =========================================================
+   DAMAGE NUMBERS
+========================================================= */
+
+.damage-number{
+    position:fixed;
+
+    z-index:500;
+
+    color:white;
+
+    font-size:20px;
+
+    font-weight:900;
+
+    text-shadow:
+        0 2px 5px #000;
+
+    pointer-events:none;
+
+    animation:
+        damageNumber .5s ease-out
+        forwards;
+}
+
+@keyframes damageNumber{
+
+    0%{
+        opacity:1;
+
+        transform:
+            translate(-50%,0)
+            scale(1);
+    }
+
+    100%{
+        opacity:0;
+
+        transform:
+            translate(-50%,-38px)
+            scale(1.15);
+    }
+}
+
+/* =========================================================
+   HEALTH
+========================================================= */
+
+#healthPanel{
+    position:absolute;
+
+    z-index:190;
+
+    left:50%;
+    bottom:22px;
+
+    transform:translateX(-50%);
+
+    width:370px;
+    max-width:42%;
+}
+
+.health-header{
+    display:flex;
+
+    justify-content:space-between;
+
+    color:white;
+
+    font-size:11px;
+
+    font-weight:bold;
+
+    margin-bottom:6px;
+
+    text-shadow:
+        0 2px 5px #000;
+}
+
+#healthOuter{
+    width:100%;
+
+    height:16px;
+
+    padding:2px;
+
+    border-radius:20px;
+
+    background:
+        rgba(0,0,0,.78);
+
+    border:
+        1px solid rgba(255,255,255,.25);
+
+    box-shadow:
+        0 6px 22px rgba(0,0,0,.6);
+}
+
+#health{
+    width:100%;
+    height:100%;
+
+    border-radius:20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #20c66a,
+            #6eea8b
+        );
+
+    transition:
+        width .18s,
+        background .2s;
+}
+
+/* =========================================================
+   BOOST
+========================================================= */
+
+#drinkButton{
+    position:absolute;
+
+    z-index:200;
+
+    left:18px;
+    bottom:18px;
+
+    width:82px;
+    height:72px;
+
+    border-radius:15px;
+
+    border:
+        1px solid rgba(255,255,255,.22);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(16,27,38,.95),
+            rgba(6,11,17,.95)
+        );
+
+    color:white;
+
+    cursor:pointer;
+
+    box-shadow:
+        0 8px 28px rgba(0,0,0,.55);
+
+    transition:
+        transform .15s,
+        opacity .2s;
+}
+
+#drinkButton:hover{
+    transform:translateY(-3px);
+}
+
+#drinkButton:active{
+    transform:scale(.94);
+}
+
+#drinkButton.used{
+    opacity:.3;
+    cursor:not-allowed;
+}
+
+.drink-icon{
+    font-size:24px;
+}
+
+.drink-text{
+    font-size:8px;
+    font-weight:900;
+}
+
+.drink-count{
+    margin-top:2px;
+
+    font-size:9px;
+
+    color:#64e68b;
+}
+
+/* =========================================================
+   MOBILE FIRE BUTTON
+========================================================= */
+
+#mobileFireButton{
+    display:none;
+
+    position:absolute;
+
+    right:22px;
+    bottom:82px;
+
+    z-index:520;
+
+    width:94px;
+    height:94px;
+
+    border-radius:50%;
+
+    border:
+        3px solid rgba(255,211,77,.8);
+
+    background:
+        radial-gradient(
+            circle,
+            #ffcf42 0%,
+            #ff8a21 55%,
+            #bd2b18 100%
+        );
+
+    color:#111;
+
+    font-size:14px;
+
+    font-weight:1000;
+
+    letter-spacing:1px;
+
+    box-shadow:
+        0 10px 30px rgba(0,0,0,.65),
+        0 0 25px rgba(255,160,30,.28);
+
+    cursor:pointer;
+
+    touch-action:none;
+
+    transition:
+        transform .08s,
+        filter .08s;
+}
+
+#mobileFireButton.visible{
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+}
+
+#mobileFireButton:active{
+    transform:scale(.90);
+
+    filter:brightness(1.18);
+}
+
+.mobile-fire-icon{
+    display:block;
+
+    font-size:25px;
+
+    line-height:1;
+
+    margin-bottom:3px;
+}
+
+/* =========================================================
+   MOBILE FLIP / EXIT
+========================================================= */
+
+.device-mobile #gameActions{
+    right:14px;
+    bottom:14px;
+}
+
+.device-mobile #flipGunButton{
+    min-width:100px;
+}
+
+.device-mobile #exitGame{
+    min-width:60px;
+}
+
+/* =========================================================
+   RADAR
+========================================================= */
+
+#radar{
+    position:absolute;
+
+    right:18px;
+    top:96px;
+
+    width:175px;
+    height:88px;
+
+    z-index:210;
+
+    border-radius:13px;
+
+    background:
+        rgba(4,9,14,.82);
+
+    border:
+        1px solid rgba(255,255,255,.18);
+
+    box-shadow:
+        0 8px 28px rgba(0,0,0,.4);
+
+    backdrop-filter:blur(10px);
+}
+
+#radarTitle{
+    position:absolute;
+
+    left:9px;
+    top:6px;
+
+    color:#aab5c1;
+
+    font-size:8px;
+
+    font-weight:bold;
+
+    letter-spacing:1px;
+}
+
+#radarTrack{
+    position:absolute;
+
+    left:8px;
+    right:8px;
+
+    bottom:10px;
+
+    height:40px;
+
+    border-radius:7px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,.025),
+            rgba(255,255,255,.08)
+        );
+
+    overflow:hidden;
+}
+
+.radar-player{
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:8px;
+    height:8px;
+
+    transform:
+        translate(-50%,-50%);
+
+    border-radius:50%;
+
+    background:#55e88a;
+
+    box-shadow:
+        0 0 10px #55e88a;
+}
+
+.radar-enemy{
+    position:absolute;
+
+    top:50%;
+
+    width:7px;
+    height:7px;
+
+    transform:
+        translate(-50%,-50%);
+
+    border-radius:50%;
+
+    background:#ff4646;
+
+    box-shadow:
+        0 0 8px #ff3333;
+}
+
+/* ========================================================= CONTROLS
+========================================================= */
+
+#controls{
+    position:absolute;
+
+    left:135px;
+    bottom:18px;
+
+    z-index:200;
+
+    color:
+        rgba(255,255,255,.62);
+
+    font-size:8px;
+
+    line-height:1.7;
+
+    pointer-events:none;
+}
+
+/* ========================================================= SCREEN SYSTEM
+========================================================= */
+
+.screen{
+    position:absolute;
+
+    inset:0;
+
+    z-index:800;
+
+    display:none;
+
+    align-items:center;
+    justify-content:center;
+
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(20,28,38,.55),
+            rgba(0,0,0,.94)
+        );
+}
+
+/* ========================================================= DEVICE SELECT
+========================================================= */
+
+#deviceScreen{
+    z-index:950;
+
+    background:
+        radial-gradient(
+            circle at 50% 25%,
+            rgba(44,64,86,.35),
+            rgba(0,0,0,.97)
+        );
+}
+
+.device-box{
+    width:540px;
+    max-width:90%;
+
+    padding:35px;
+
+    border-radius:24px;
+
+    text-align:center;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(12,18,27,.98),
+            rgba(5,9,15,.98)
+        );
+
+    border:
+        1px solid rgba(255,255,255,.14);
+
+    box-shadow:
+        0 30px 100px rgba(0,0,0,.8);
+
+    animation:
+        confirmIn .18s ease-out;
+}
+
+.device-title{
+    font-size:30px;
+
+    font-weight:1000;
+
+    letter-spacing:2px;
+}
+
+.device-subtitle{
+    margin-top:10px;
+
+    color:#8f9ca9;
+
+    font-size:11px;
+
+    line-height:1.6;
+}
+
+.device-options{
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:15px;
+
+    margin-top:25px;
+}
+
+.device-choice{
+    min-height:150px;
+
+    padding:20px;
+
+    border-radius:18px;
+
+    border:
+        1px solid rgba(255,255,255,.13);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.055),
+            rgba(255,255,255,.018)
+        );
+
+    color:white;
+
+    cursor:pointer;
+
+    transition:
+        transform .15s,
+        border-color .15s,
+        background .15s;
+}
+
+.device-choice:hover{
+    transform:translateY(-4px);
+
+    border-color:
+        rgba(255,210,70,.65);
+
+    background:
+        rgba(255,190,50,.08);
+}
+
+.device-icon{
+    font-size:42px;
+}
+
+.device-name{
+    margin-top:12px;
+
+    font-size:17px;
+
+    font-weight:1000;
+}
+
+.device-desc{
+    margin-top:7px;
+
+    color:#7f8c99;
+
+    font-size:9px;
+
+    line-height:1.5;
+}
+
+/* ========================================================= EXIT CONFIRM
+========================================================= */
+
+#exitConfirm{
+    z-index:1200;
+}
+
+.confirm-box{
+    width:400px;
+    max-width:85%;
+
+    padding:30px;
+
+    text-align:center;
+
+    border-radius:20px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(12,18,27,.98),
+            rgba(5,9,15,.98)
+        );
+
+    border:
+        1px solid rgba(255,255,255,.14);
+
+    box-shadow:
+        0 30px 100px rgba(0,0,0,.8);
+
+    backdrop-filter:blur(20px);
+
+    animation:
+        confirmIn .18s ease-out;
+}
+
+@keyframes confirmIn{
+
+    from{
+        opacity:0;
+        transform:scale(.92);
+    }
+
+    to{
+        opacity:1;
+        transform:scale(1);
+    }
+}
+
+.confirm-icon{
+    font-size:35px;
+}
+
+.confirm-title{
+    margin-top:10px;
+
+    font-size:24px;
+
+    font-weight:1000;
+}
+
+.confirm-text{
+    margin-top:10px;
+
+    color:#8f9ca9;
+
+    font-size:11px;
+
+    line-height:1.6;
+}
+
+.confirm-actions{
+    display:flex;
+
+    gap:10px;
+
+    margin-top:22px;
+}
+
+.confirm-button{
+    flex:1;
+
+    padding:13px;
+
+    border-radius:10px;
+
+    border:
+        1px solid rgba(255,255,255,.14);
+
+    font-size:11px;
+
+    font-weight:1000;
+
+    cursor:pointer;
+}
+
+#cancelExit{
+    background:
+        rgba(255,255,255,.07);
+
+    color:white;
+}
+
+#confirmExit{
+    background:
+        linear-gradient(
+            135deg,
+            #e04b4b,
+            #9f2222
+        );
+
+    color:white;
+}
+
+.confirm-button:hover{
+    transform:translateY(-2px);
+}
+
+/* ========================================================= DASHBOARD
+========================================================= */
+
+#dashboard{
+    display:flex;
+
+    z-index:900;
+
+    background:
+        radial-gradient(
+            circle at 50% 20%,
+            rgba(45,65,88,.25),
+            rgba(2,5,9,.98)
+        );
+}
+
+.dashboard-box{
+    width:92%;
+    height:88%;
+
+    max-width:1050px;
+
+    border-radius:25px;
+
+    padding:28px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(12,18,27,.97),
+            rgba(5,9,15,.97)
+        );
+
+    border:
+        1px solid rgba(255,255,255,.12);
+
+    box-shadow:
+        0 30px 100px rgba(0,0,0,.7);
+
+    display:grid;
+
+    grid-template-columns:
+        1fr 1.3fr;
+
+    gap:25px;
+
+    overflow:hidden;
+}
+
+.dashboard-left{
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+    align-items:center;
+
+    border-radius:20px;
+
+    background:
+        radial-gradient(
+            circle at 50% 30%,
+            rgba(255,255,255,.06),
+            transparent 65%
+        );
+}
+
+.hero-image{
+    width:75%;
+
+    max-height:58%;
+
+    object-fit:contain;
+
+    filter:
+        drop-shadow(
+            0 25px 20px rgba(0,0,0,.75)
+        );
+}
+
+.game-title{
+    margin-top:15px;
+
+    font-size:38px;
+
+    font-weight:1000;
+
+    letter-spacing:5px;
+
+    text-align:center;
+}
+
+.game-subtitle{
+    margin-top:5px;
+
+    color:#82909e;
+
+    font-size:10px;
+
+    letter-spacing:2px;
+}
+
+.dashboard-right{
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    gap:14px;
+}
+
+.panel-title{
+    color:#7e8c9b;
+
+    font-size:10px;
+
+    font-weight:bold;
+
+    letter-spacing:2px;
+}
+
+.stat-grid{
+    display:grid;
+
+    grid-template-columns:
+        repeat(3,1fr);
+
+    gap:10px;
+}
+
+.stat-card{
+    padding:15px;
+
+    border-radius:14px;
+
+    background:
+        rgba(255,255,255,.045);
+
+    border:
+        1px solid rgba(255,255,255,.09);
+}
+
+.stat-name{
+    color:#7f8c99;
+
+    font-size:9px;
+
+    letter-spacing:1px;
+}
+
+.stat-number{
+    margin-top:5px;
+
+    font-size:25px;
+
+    font-weight:1000;
+}
+
+/* ========================================================= GUN SELECT
+========================================================= */
+
+.gun-grid{
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:9px;
+}
+
+.gun-choice{
+    height:95px;
+
+    border-radius:13px;
+
+    border:
+        1px solid rgba(255,255,255,.1);
+
+    background:
+        rgba(255,255,255,.035);
+
+    cursor:pointer;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    transition:.15s;
+}
+
+.gun-choice:hover{
+    background:
+        rgba(255,255,255,.08);
+
+    transform:translateY(-2px);
+}
+
+.gun-choice.selected{
+    border:
+        2px solid #ffd04b;
+
+    background:
+        rgba(255,190,50,.09);
+
+    box-shadow:
+        0 0 20px rgba(255,190,50,.12);
+}
+
+.gun-choice img{
+    width:90%;
+    height:85%;
+
+    object-fit:contain;
+}
+
+/* ========================================================= BATTLE BUTTON
+========================================================= */
+
+#battleButton{
+    width:100%;
+
+    padding:17px;
+
+    margin-top:3px;
+
+    border:none;
+
+    border-radius:13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffd54d,
+            #ff8a22
+        );
+
+    color:#111;
+
+    font-size:15px;
+
+    font-weight:1000;
+
+    letter-spacing:2px;
+
+    cursor:pointer;
+
+    box-shadow:
+        0 10px 30px rgba(255,145,30,.2);
+
+    transition:.15s;
+}
+
+#battleButton:hover{
+    transform:translateY(-2px);
+
+    box-shadow:
+        0 14px 35px rgba(255,145,30,.35);
+}
+
+/* ========================================================= LEVEL SCREEN
+========================================================= */
+
+#levelScreen{
+    z-index:850;
+
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(25,38,53,.5),
+            rgba(0,0,0,.96)
+        );
+}
+
+.level-box{
+    width:90%;
+    max-width:1100px;
+
+    height:86%;
+
+    padding:25px;
+
+    border-radius:22px;
+
+    background:
+        rgba(7,12,18,.96);
+
+    border:
+        1px solid rgba(255,255,255,.12);
+
+    box-shadow:
+        0 30px 100px rgba(0,0,0,.7);
+
+    display:flex;
+
+    flex-direction:column;
+}
+
+.level-header{
+    display:flex;
+
+    justify-content:space-between;
+    align-items:center;
+
+    gap:15px;
+}
+
+.level-header h2{
+    font-size:28px;
+}
+
+.level-header-sub{
+    margin-top:5px;
+
+    color:#7f8c99;
+
+    font-size:10px;
+}
+
+.level-tools{
+    display:flex;
+
+    gap:8px;
+}
+
+.back-button{
+    padding:9px 15px;
+
+    border-radius:9px;
+
+    border:
+        1px solid rgba(255,255,255,.14);
+
+    background:
+        rgba(255,255,255,.06);
+
+    color:white;
+
+    cursor:pointer;
+
+    font-weight:bold;
+}
+
+/* ========================================================= INFINITE LEVEL GRID
+========================================================= */
+
+.level-grid{
+    margin-top:20px;
+
+    flex:1;
+
+    overflow:auto;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(10,1fr);
+
+    gap:10px;
+
+    padding:5px;
+
+    contain:content;
+}
+
+.level-grid::-webkit-scrollbar{
+    width:5px;
+}
+
+.level-grid::-webkit-scrollbar-thumb{
+    background:#384352;
+
+    border-radius:10px;
+}
+
+.level-button{
+    position:relative;
+
+    min-height:75px;
+
+    border-radius:12px;
+
+    border:
+        1px solid rgba(255,255,255,.1);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.065),
+            rgba(255,255,255,.025)
+        );
+
+    color:white;
+
+    cursor:pointer;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+    justify-content:center;
+
+    transition:.15s;
+
+    content-visibility:auto;
+}
+
+.level-button:hover:not(.locked){
+    transform:translateY(-3px);
+
+    background:
+        rgba(255,255,255,.1);
+}
+
+.level-button.locked{
+    opacity:.32;
+
+    cursor:not-allowed;
+}
+
+.level-button.completed{
+    border-color:
+        rgba(255,207,70,.45);
+}
+
+.level-number{
+    font-size:21px;
+
+    font-weight:1000;
+}
+
+.level-map{
+    margin-top:4px;
+
+    font-size:7px;
+
+    color:#83909c;
+
+    letter-spacing:.5px;
+}
+
+.level-stars{
+    position:absolute;
+
+    left:0;
+    right:0;
+
+    bottom:5px;
+
+    font-size:9px;
+
+    color:#ffd34e;
+
+    letter-spacing:1px;
+}
+
+.lock{
+    position:absolute;
+
+    top:5px;
+    right:7px;
+
+    font-size:10px;
+}
+
+/* =========================================================
+   LEVEL CURRENT BUTTON
+========================================================= */
+
+#currentLevelButton{
+    color:#ffd34d;
+
+    border-color:
+        rgba(255,210,70,.3);
+}
+
+/* ========================================================= START SCREEN
+========================================================= */
+
+#startScreen{
+    z-index:600;
+}
+
+.start-box{
+    width:450px;
+
+    max-width:85%;
+
+    padding:35px;
+
+    text-align:center;
+
+    border-radius:22px;
+
+    background:
+        rgba(7,12,18,.96);
+
+    border:
+        1px solid rgba(255,255,255,.14);
+
+    box-shadow:
+        0 30px 90px rgba(0,0,0,.7);
+}
+
+.start-logo{
+    font-size:37px;
+
+    font-weight:1000;
+
+    letter-spacing:4px;
+}
+
+.start-sub{
+    margin-top:13px;
+
+    color:#8e9ba8;
+
+    line-height:1.6;
+
+    font-size:12px;
+}
+
+.start-button{
+    margin-top:25px;
+
+    padding:14px 32px;
+
+    border:none;
+
+    border-radius:10px;
+
+    color:#111;
+
+    font-size:14px;
+
+    font-weight:1000;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffd34d,
+            #ff8b25
+        );
+
+    cursor:pointer;
+}
+
+/* ========================================================= RESULT
+========================================================= */
+
+#resultScreen{
+    z-index:650;
+}
+
+.result-box{
+    width:420px;
+
+    max-width:85%;
+
+    padding:35px;
+
+    text-align:center;
+
+    border-radius:20px;
+
+    background:
+        rgba(8,13,19,.98);
+
+    border:
+        1px solid rgba(255,255,255,.14);
+}
+
+#resultTitle{
+    font-size:38px;
+
+    font-weight:1000;
+}
+
+#resultText{
+    margin-top:12px;
+
+    color:#aab4bf;
+
+    line-height:1.65;
+}
+
+.result-button{
+    margin-top:24px;
+
+    padding:13px 28px;
+
+    border:none;
+
+    border-radius:9px;
+
+    background:#ffd052;
+
+    color:#111;
+
+    font-weight:1000;
+
+    cursor:pointer;
+}
+
+/* =========================================================
+   MOBILE / TABLET
+========================================================= */
+
+@media(max-width:800px){
+
+    #game{
+        width:100vw;
+        height:56.25vw;
+
+        max-height:100vh;
+    }
+
+    .dashboard-box{
+        grid-template-columns:1fr;
+
+        overflow:auto;
+    }
+
+    .dashboard-left{
+        min-height:280px;
+    }
+
+    .hero-image{
+        height:180px;
+    }
+
+    .game-title{
+        font-size:25px;
+    }
+
+    .level-grid{
+        grid-template-columns:
+            repeat(5,1fr);
+    }
+
+    .hud{
+        left:8px;
+        right:8px;
+        top:8px;
+    }
+
+    #hud{
+        left:8px;
+        right:8px;
+        top:8px;
+    }
+
+    .hud-group{
+        gap:4px;
+    }
+
+    .hud-card{
+        min-width:62px;
+
+        padding:6px 8px;
+
+        border-radius:10px;
+    }
+
+    .hud-value{
+        font-size:14px;
+    }
+
+    .hud-label{
+        font-size:7px;
+    }
+
+    #fpsCard{
+        min-width:58px;
+    }
+
+    #radar{
+        width:130px;
+
+        height:70px;
+
+        right:8px;
+
+        top:82px;
+    }
+
+    #healthPanel{
+        width:48%;
+
+        bottom:14px;
+    }
+
+    #gun{
+        width:43%;
+    }
+
+    #gun.flipped{
+        left:-6%;
+    }
+
+    #controls{
+        left:100px;
+        bottom:14px;
+
+        font-size:7px;
+    }
+
+    #drinkButton{
+        left:10px;
+        bottom:10px;
+
+        width:68px;
+        height:62px;
+    }
+
+    #gameActions{
+        right:8px;
+        bottom:8px;
+    }
+
+    .game-action{
+        height:36px;
+
+        padding:0 9px;
+
+        font-size:8px;
+    }
+
+    .device-options{
+        grid-template-columns:1fr;
+    }
+
+    .device-box{
+        padding:25px;
+    }
+
+    .device-choice{
+        min-height:115px;
+    }
+
+    .device-icon{
+        font-size:32px;
+    }
+
+    .device-name{
+        margin-top:6px;
+    }
+
+    #mobileFireButton{
+        right:15px;
+        bottom:75px;
+
+        width:84px;
+        height:84px;
+    }
+
+    .level-header{
+        align-items:flex-start;
+    }
+
+    .level-header h2{
+        font-size:21px;
+    }
+
+    .level-header-sub{
+        font-size:8px;
+    }
+
+    .level-tools{
+        flex-direction:column;
+    }
+
+    .back-button{
+        font-size:8px;
+        padding:8px;
+    }
+}
+
+/* =========================================================
+   VERY SMALL PHONES
+========================================================= */
+
+@media(max-width:500px){
+
+    #hud .hud-card:nth-child(3){
+        display:none;
+    }
+
+    #radar{
+        width:110px;
+        height:62px;
+    }
+
+    #healthPanel{
+        width:45%;
+    }
+
+    #controls{
+        display:none;
+    }
+
+    .level-grid{
+        grid-template-columns:
+            repeat(4,1fr);
+    }
+
+    .level-button{
+        min-height:68px;
+    }
+
+    .level-number{
+        font-size:17px;
+    }
+}
+
+/* =========================================================
+   REDUCE MOTION
+========================================================= */
+
+@media(prefers-reduced-motion:reduce){
+
+    *,
+    *::before,
+    *::after{
+        animation-duration:.01ms !important;
+        transition-duration:.01ms !important;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<!-- =====================================================
+     WORLD
+===================================================== -->
+
+<div id="camera">
+
+    <div id="world">
+
+        <img
+            id="panorama"
+            src="assets/panorama-snow.jpg"
+            draggable="false"
+        >
+
+        <div id="enemyLayer"></div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     WALL
+===================================================== -->
+
+<div id="wallFallback"></div>
+
+<img
+    id="wall"
+    src="assets/wall.png"
+    draggable="false"
+    onerror="this.style.display='none'"
+>
+
+<div id="balconyEdge"></div>
+
+
+<!-- =====================================================
+     HUD
+===================================================== -->
+
+<div id="hud">
+
+    <div class="hud-group">
+
+        <div class="hud-card">
+
+            <div class="hud-label">
+                LEVEL
+            </div>
+
+            <div
+                id="levelText"
+                class="hud-value"
+            >
+                1
+            </div>
+
+        </div>
+
+
+        <div class="hud-card">
+
+            <div class="hud-label">
+                ENEMIES
+            </div>
+
+            <div
+                id="enemyText"
+                class="hud-value"
+            >
+                0 / 1
+            </div>
+
+        </div>
+
+
+        <div class="hud-card">
+
+            <div class="hud-label">
+                KILLS
+            </div>
+
+            <div
+                id="killText"
+                class="hud-value"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div
+            id="fpsCard"
+            class="hud-card"
+        >
+
+            <div class="hud-label">
+                FPS
+            </div>
+
+            <div
+                id="fpsValue"
+                class="hud-value"
+            >
+                60
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="hud-group">
+
+        <div class="hud-card">
+
+            <div class="hud-label">
+                STARS
+            </div>
+
+            <div
+                id="stars"
+                class="hud-value"
+            >
+                ★★★
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     RADAR
+===================================================== -->
+
+<div id="radar">
+
+    <div id="radarTitle">
+        ENEMY RADAR
+    </div>
+
+    <div id="radarTrack">
+
+        <div class="radar-player"></div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     CROSSHAIR
+===================================================== -->
+
+<div id="crosshair">
+
+    <div class="cross-circle"></div>
+
+    <div class="cross-h"></div>
+
+    <div class="cross-v"></div>
+
+</div>
+
+
+<!-- =====================================================
+     GUN
+===================================================== -->
+
+<img
+    id="gun"
+    src="assets/gun1.png"
+    draggable="false"
+>
+
+
+<!-- =====================================================
+     MUZZLE FLASH
+===================================================== -->
+
+<div id="muzzleFlash"></div>
+
+<div id="fireParticles"></div>
+
+<div id="damageFlash"></div>
+
+
+<!-- =====================================================
+     HEALTH
+===================================================== -->
+
+<div id="healthPanel">
+
+    <div class="health-header">
+
+        <span>
+            PLAYER HEALTH
+        </span>
+
+        <span id="healthText">
+            100%
+        </span>
+
+    </div>
+
+    <div id="healthOuter">
+
+        <div id="health"></div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     BOOST
+===================================================== -->
+
+<button id="drinkButton">
+
+    <div class="drink-icon">
+        🥤
+    </div>
+
+    <div class="drink-text">
+        EMERGENCY BOOST
+    </div>
+
+    <div
+        id="drinkCount"
+        class="drink-count"
+    >
+        READY
+    </div>
+
+</button>
+
+
+<!-- =====================================================
+     MOBILE FIRE BUTTON
+===================================================== -->
+
+<button
+    id="mobileFireButton"
+    type="button"
+>
+
+    <div>
+
+        <span class="mobile-fire-icon">
+            🔥
+        </span>
+
+        FIRE
+
+    </div>
+
+</button>
+
+
+<!-- =====================================================
+     CONTROLS
+===================================================== -->
+
+<div id="controls">
+
+    MOUSE = CAMERA / AIM<br>
+
+    LEFT CLICK = FIRE<br>
+
+    ↔ = FLIP GUN<br>
+
+    🥤 = +50% HEALTH
+
+</div>
+
+
+<!-- =====================================================
+     GAME ACTIONS
+===================================================== -->
+
+<div id="gameActions">
+
+    <button
+        id="flipGunButton"
+        class="game-action"
+        type="button"
+    >
+        ↔ FLIP GUN
+    </button>
+
+    <button
+        id="exitGame"
+        class="game-action"
+        type="button"
+    >
+        EXIT
+    </button>
+
+</div>
+
+
+<!-- =====================================================
+     DASHBOARD
+===================================================== -->
+
+<div
+    id="dashboard"
+    class="screen"
+>
+
+    <div class="dashboard-box">
+
+        <div class="dashboard-left">
+
+            <img
+                class="hero-image"
+                src="assets/hero.png"
+                draggable="false"
+            >
+
+            <div class="game-title">
+                LEGENDS BATTLE
+            </div>
+
+            <div class="game-subtitle">
+                BECOME THE LEGEND
+            </div>
+
+        </div>
+
+
+        <div class="dashboard-right">
+
+            <div class="panel-title">
+                PLAYER PROFILE
+            </div>
+
+
+            <div class="stat-grid">
+
+                <div class="stat-card">
+
+                    <div class="stat-name">
+                        TOTAL KILLS
+                    </div>
+
+                    <div
+                        id="dashboardKills"
+                        class="stat-number"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-name">
+                        LEVEL
+                    </div>
+
+                    <div
+                        id="dashboardLevel"
+                        class="stat-number"
+                    >
+                        1
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-name">
+                        TOTAL STARS
+                    </div>
+
+                    <div
+                        id="dashboardStars"
+                        class="stat-number"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel-title">
+                SELECT GUN
+            </div>
+
+
+            <div class="gun-grid">
+
+                <div
+                    class="gun-choice selected"
+                    data-gun="1"
+                >
+                    <img
+                        src="assets/gun1.png"
+                        draggable="false"
+                    >
+                </div>
+
+                <div
+                    class="gun-choice"
+                    data-gun="2"
+                >
+                    <img
+                        src="assets/gun2.png"
+                        draggable="false"
+                    >
+                </div>
+
+                <div
+                    class="gun-choice"
+                    data-gun="3"
+                >
+                    <img
+                        src="assets/gun3.png"
+                        draggable="false"
+                    >
+                </div>
+
+                <div
+                    class="gun-choice"
+                    data-gun="4"
+                >
+                    <img
+                        src="assets/gun4.png"
+                        draggable="false"
+                    >
+                </div>
+
+            </div>
+
+
+            <button id="battleButton">
+                ⚔ BATTLE
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     DEVICE SELECT
+===================================================== -->
+
+<div
+    id="deviceScreen"
+    class="screen"
+>
+
+    <div class="device-box">
+
+        <div class="device-title">
+            SELECT CONTROL MODE
+        </div>
+
+        <div class="device-subtitle">
+
+            Choose how you want to play this battle.
+            <br>
+            You can change this anytime by returning to the dashboard.
+
+        </div>
+
+
+        <div class="device-options">
+
+            <button
+                id="pcModeButton"
+                class="device-choice"
+                type="button"
+            >
+
+                <div class="device-icon">
+                    🖥️
+                </div>
+
+                <div class="device-name">
+                    PC
+                </div>
+
+                <div class="device-desc">
+                    Mouse camera + aim<br>
+                    Left click to fire
+                </div>
+
+            </button>
+
+
+            <button
+                id="mobileModeButton"
+                class="device-choice"
+                type="button"
+            >
+
+                <div class="device-icon">
+                    📱
+                </div>
+
+                <div class="device-name">
+                    MOBILE / TABLET
+                </div>
+
+                <div class="device-desc">
+                    Touch to aim<br>
+                    FIRE button to attack
+                </div>
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     LEVEL SCREEN
+===================================================== -->
+
+<div
+    id="levelScreen"
+    class="screen"
+>
+
+    <div class="level-box">
+
+        <div class="level-header">
+
+            <div>
+
+                <h2>
+                    BATTLE MAP
+                </h2>
+
+                <div class="level-header-sub">
+                    Infinite battlefield • Complete a level to unlock the next
+                </div>
+
+            </div>
+
+
+            <div class="level-tools">
+
+                <button
+                    id="currentLevelButton"
+                    class="back-button"
+                >
+                    CURRENT
+                </button>
+
+                <button
+                    id="levelBack"
+                    class="back-button"
+                >
+                    ← DASHBOARD
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="levelGrid"
+            class="level-grid"
+        ></div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     START SCREEN
+===================================================== -->
+
+<div
+    id="startScreen"
+    class="screen"
+>
+
+    <div class="start-box">
+
+        <div
+            id="startLogo"
+            class="start-logo"
+        >
+            READY
+        </div>
+
+        <div
+            id="startSub"
+            class="start-sub"
+        >
+            LEVEL 1
+        </div>
+
+        <button
+            id="startButton"
+            class="start-button"
+        >
+            START BATTLE
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     RESULT
+===================================================== -->
+
+<div
+    id="resultScreen"
+    class="screen"
+>
+
+    <div class="result-box">
+
+        <div id="resultTitle">
+            VICTORY
+        </div>
+
+        <div id="resultText">
+            Level completed.
+        </div>
+
+        <button
+            id="resultButton"
+            class="result-button"
+        >
+            NEXT LEVEL
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     EXIT CONFIRMATION
+===================================================== -->
+
+<div
+    id="exitConfirm"
+    class="screen"
+>
+
+    <div class="confirm-box">
+
+        <div class="confirm-icon">
+            ⚠
+        </div>
+
+        <div
+            id="confirmTitle"
+            class="confirm-title"
+        >
+            EXIT BATTLE?
+        </div>
+
+        <div
+            id="confirmText"
+            class="confirm-text"
+        >
+            Are you sure you want to exit?
+            <br>
+            Your current battle progress will not be saved.
+        </div>
+
+        <div class="confirm-actions">
+
+            <button
+                id="cancelExit"
+                class="confirm-button"
+                type="button"
+            >
+                NO, CONTINUE
+            </button>
+
+            <button
+                id="confirmExit"
+                class="confirm-button"
+                type="button"
+            >
+                YES, EXIT
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const CONFIG = {
+
+    normalHP:4,
+
+    playerDamagePerShot:2,
+
+    enemyDamage:1,
+
+    enemyAttackInterval:2200,
+
+    worldVerticalParallax:7,
+
+    gunVerticalParallax:12,
+
+    gunHorizontalParallax:8,
+
+    projectileDuration:130,
+
+    hitDistance:130,
+
+    fireParticleCount:9
+
+};
+
+
+/* =========================================================
+   MAPS
+========================================================= */
+
+const MAPS = {
+
+    snow:{
+        image:"assets/panorama-snow.jpg",
+        name:"SNOW BATTLEFIELD"
+    },
+
+    desert:{
+        image:"assets/panorama-desert.jpg",
+        name:"DESERT VILLAGE"
+    },
+
+    forest:{
+        image:"assets/panorama-forest.jpg",
+        name:"FOREST BATTLEFIELD"
+    }
+
+};
+
+
+/* =========================================================
+   ENEMY IMAGES
+========================================================= */
+
+const ENEMY_IMAGES = [
+
+    "assets/character1.png",
+    "assets/character2.png",
+    "assets/character3.png",
+    "assets/character4.png",
+    "assets/character5.png",
+    "assets/character6.png"
+
+];
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const game =
+    document.getElementById("game");
+
+const world =
+    document.getElementById("world");
+
+const panorama =
+    document.getElementById("panorama");
+
+const enemyLayer =
+    document.getElementById("enemyLayer");
+
+const gun =
+    document.getElementById("gun");
+
+const flipGunButton =
+    document.getElementById("flipGunButton");
+
+const crosshair =
+    document.getElementById("crosshair");
+
+const muzzleFlash =
+    document.getElementById("muzzleFlash");
+
+const fireParticles =
+    document.getElementById("fireParticles");
+
+const damageFlash =
+    document.getElementById("damageFlash");
+
+const health =
+    document.getElementById("health");
+
+const healthText =
+    document.getElementById("healthText");
+
+const levelText =
+    document.getElementById("levelText");
+
+const enemyText =
+    document.getElementById("enemyText");
+
+const killText =
+    document.getElementById("killText");
+
+const stars =
+    document.getElementById("stars");
+
+const radarTrack =
+    document.getElementById("radarTrack");
+
+const drinkButton =
+    document.getElementById("drinkButton");
+
+const drinkCount =
+    document.getElementById("drinkCount");
+
+const mobileFireButton =
+    document.getElementById("mobileFireButton");
+
+const dashboard =
+    document.getElementById("dashboard");
+
+const deviceScreen =
+    document.getElementById("deviceScreen");
+
+const levelScreen =
+    document.getElementById("levelScreen");
+
+const levelGrid =
+    document.getElementById("levelGrid");
+
+const battleButton =
+    document.getElementById("battleButton");
+
+const levelBack =
+    document.getElementById("levelBack");
+
+const currentLevelButton =
+    document.getElementById("currentLevelButton");
+
+const pcModeButton =
+    document.getElementById("pcModeButton");
+
+const mobileModeButton =
+    document.getElementById("mobileModeButton");
+
+const startScreen =
+    document.getElementById("startScreen");
+
+const startButton =
+    document.getElementById("startButton");
+
+const startLogo =
+    document.getElementById("startLogo");
+
+const startSub =
+    document.getElementById("startSub");
+
+const resultScreen =
+    document.getElementById("resultScreen");
+
+const resultTitle =
+    document.getElementById("resultTitle");
+
+const resultText =
+    document.getElementById("resultText");
+
+const resultButton =
+    document.getElementById("resultButton");
+
+const exitGame =
+    document.getElementById("exitGame");
+
+const exitConfirm =
+    document.getElementById("exitConfirm");
+
+const cancelExit =
+    document.getElementById("cancelExit");
+
+const confirmExit =
+    document.getElementById("confirmExit");
+
+const confirmTitle =
+    document.getElementById("confirmTitle");
+
+const confirmText =
+    document.getElementById("confirmText");
+
+const dashboardKills =
+    document.getElementById("dashboardKills");
+
+const dashboardLevel =
+    document.getElementById("dashboardLevel");
+
+const dashboardStars =
+    document.getElementById("dashboardStars");
+
+const fpsValue =
+    document.getElementById("fpsValue");
+
+
+/* =========================================================
+   AUDIO
+========================================================= */
+
+const heroSound =
+    new Audio("assets/bow.mp3");
+
+const enemySound =
+    new Audio("assets/beep.mp3");
+
+heroSound.volume=.55;
+enemySound.volume=.45;
+
+
+/* =========================================================
+   SAVE DATA
+========================================================= */
+
+let savedData = {
+
+    unlockedLevel:
+        Number(
+            localStorage.getItem(
+                "legendsUnlockedLevel"
+            )
+        ) || 1,
+
+    totalKills:
+        Number(
+            localStorage.getItem(
+                "legendsTotalKills"
+            )
+        ) || 0,
+
+    totalStars:
+        Number(
+            localStorage.getItem(
+                "legendsTotalStars"
+            )
+        ) || 0,
+
+    selectedGun:
+        Number(
+            localStorage.getItem(
+                "legendsSelectedGun"
+            )
+        ) || 1,
+
+    completedLevels:
+        JSON.parse(
+            localStorage.getItem(
+                "legendsCompletedLevels"
+            ) || "{}"
+        )
+
+};
+
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+let level=1;
+
+let healthValue=100;
+
+let enemies=[];
+
+let levelKills=0;
+
+let running=false;
+
+let attackTimer=null;
+
+let mouseX=0;
+
+let mouseY=0;
+
+let worldWidth=0;
+
+let drinkAvailable=true;
+
+let victoryTriggered=false;
+
+let gunFlipped=false;
+
+
+/*
+   PC / MOBILE CONTROL MODE
+
+   pc     = mouse + click
+   mobile = touch + FIRE
+*/
+
+let controlMode="pc";
+
+
+/* =========================================================
+   EXIT CONFIRM STATE
+========================================================= */
+
+let exitStep=0;
+
+let exitPaused=false;
+
+
+/* =========================================================
+   FPS
+========================================================= */
+
+let fpsFrames=0;
+
+let fpsLastTime=
+    performance.now();
+
+let fpsDisplay=60;
+
+
+/* =========================================================
+   MOUSE / TOUCH SMOOTHING
+========================================================= */
+
+let aimRaf=0;
+
+let targetMouseX=0;
+
+let targetMouseY=0;
+
+
+/* =========================================================
+   SAVE
+========================================================= */
+
+function saveData(){
+
+    localStorage.setItem(
+        "legendsUnlockedLevel",
+        savedData.unlockedLevel
+    );
+
+    localStorage.setItem(
+        "legendsTotalKills",
+        savedData.totalKills
+    );
+
+    localStorage.setItem(
+        "legendsTotalStars",
+        savedData.totalStars
+    );
+
+    localStorage.setItem(
+        "legendsSelectedGun",
+        savedData.selectedGun
+    );
+
+    localStorage.setItem(
+        "legendsCompletedLevels",
+        JSON.stringify(
+            savedData.completedLevels
+        )
+    );
+
+}
+
+
+/* =========================================================
+   MAP
+========================================================= */
+
+function getMapType(lvl){
+
+    if(lvl<=10)
+        return "snow";
+
+    if(lvl<=25)
+        return "desert";
+
+    return "forest";
+
+}
+
+
+function getMapName(lvl){
+
+    return MAPS[
+        getMapType(lvl)
+    ].name;
+
+}
+
+
+/* =========================================================
+   INFINITE ENEMY COUNT
+========================================================= */
+
+function getEnemyCount(lvl){
+
+    return Math.max(
+        1,
+        Math.floor(lvl)
+    );
+
+}
+
+
+/* =========================================================
+   ROAD POINTS
+========================================================= */
+
+const ROAD_POINTS={
+
+    snow:[
+        [2,88],
+        [8,86],
+        [15,89],
+        [22,85],
+        [30,88],
+        [38,86],
+        [46,89],
+        [54,85],
+        [62,88],
+        [70,86],
+        [78,89],
+        [86,85],
+        [94,88],
+        [99,86]
+    ],
+
+    desert:[
+        [2,89],
+        [9,86],
+        [16,88],
+        [23,85],
+        [31,89],
+        [39,86],
+        [47,88],
+        [55,85],
+        [63,89],
+        [71,86],
+        [79,88],
+        [87,85],
+        [95,89]
+    ],
+
+    forest:[
+        [2,88],
+        [9,86],
+        [16,89],
+        [23,85],
+        [30,88],
+        [38,86],
+        [46,89],
+        [54,85],
+        [62,88],
+        [70,86],
+        [78,89],
+        [86,85],
+        [94,88],
+        [99,86]
+    ]
+
+};
+
+
+/* =========================================================
+   ENEMY POSITION
+========================================================= */
+
+function getEnemyPosition(index,total){
+
+    const type =
+        getMapType(level);
+
+    const points =
+        ROAD_POINTS[type];
+
+    const normalized =
+        total<=1
+            ? .5
+            : index/(total-1);
+
+    const scaled =
+        normalized*
+        (points.length-1);
+
+    const left =
+        Math.floor(scaled);
+
+    const right =
+        Math.min(
+            left+1,
+            points.length-1
+        );
+
+    const amount =
+        scaled-left;
+
+    let x =
+        points[left][0]+
+        (
+            points[right][0]-
+            points[left][0]
+        )*
+        amount;
+
+    let y =
+        points[left][1]+
+        (
+            points[right][1]-
+            points[left][1]
+        )*
+        amount;
+
+    y +=
+        ((index%5)-2)*
+        1.1;
+
+    if(total>14){
+
+        x +=
+            Math.sin(index*2.17)*
+            1.8;
+
+    }
+
+    x=Math.max(
+        1,
+        Math.min(99,x)
+    );
+
+    y=Math.max(
+        75,
+        Math.min(93,y)
+    );
+
+    return {
+        x,
+        y
+    };
+
+}
+
+
+/* =========================================================
+   PANORAMA SIZE
+========================================================= */
+
+function sizePanorama(){
+
+    if(!panorama.naturalWidth)
+        return;
+
+    const gameHeight =
+        game.clientHeight;
+
+    const aspect =
+        panorama.naturalWidth/
+        panorama.naturalHeight;
+
+    worldWidth =
+        Math.max(
+            gameHeight*aspect,
+            game.clientWidth
+        );
+
+    world.style.width =
+        `${worldWidth}px`;
+
+    panorama.style.width =
+        `${worldWidth}px`;
+
+    enemyLayer.style.width =
+        `${worldWidth}px`;
+
+    resetCamera();
+
+}
+
+
+/* =========================================================
+   SET MAP
+========================================================= */
+
+function setMap(lvl){
+
+    const type =
+        getMapType(lvl);
+
+    panorama.src =
+        MAPS[type].image;
+
+    if(panorama.complete)
+        sizePanorama();
+
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+function updateDashboard(){
+
+    dashboardKills.textContent =
+        savedData.totalKills;
+
+    dashboardLevel.textContent =
+        savedData.unlockedLevel;
+
+    dashboardStars.textContent =
+        savedData.totalStars;
+
+    document
+        .querySelectorAll(".gun-choice")
+        .forEach(card=>{
+
+            const selected =
+                Number(
+                    card.dataset.gun
+                ) ===
+                savedData.selectedGun;
+
+            card.classList.toggle(
+                "selected",
+                selected
+            );
+
+        });
+
+    gun.src =
+        `assets/gun${savedData.selectedGun}.png`;
+
+}
+
+
+/* =========================================================
+   GUN SELECT
+========================================================= */
+
+document
+    .querySelectorAll(".gun-choice")
+    .forEach(card=>{
+
+        card.addEventListener(
+            "click",
+            ()=>{
+
+                savedData.selectedGun =
+                    Number(
+                        card.dataset.gun
+                    );
+
+                saveData();
+
+                updateDashboard();
+
+            }
+        );
+
+    });
+
+
+/* =========================================================
+   DEVICE MODE
+========================================================= */
+
+function setControlMode(mode){
+
+    controlMode=mode;
+
+    game.classList.toggle(
+        "device-mobile",
+        mode==="mobile"
+    );
+
+    mobileFireButton.classList.toggle(
+        "visible",
+        mode==="mobile"
+    );
+
+    if(mode==="mobile"){
+
+        document.body.style.touchAction =
+            "none";
+
+    }else{
+
+        document.body.style.touchAction =
+            "";
+
+    }
+
+}
+
+
+/* =========================================================
+   DEVICE BUTTONS
+========================================================= */
+
+pcModeButton.addEventListener(
+    "click",
+    ()=>{
+
+        setControlMode("pc");
+
+        deviceScreen.style.display=
+            "none";
+
+        buildLevelGrid();
+
+        levelScreen.style.display=
+            "flex";
+
+    }
+);
+
+
+mobileModeButton.addEventListener(
+    "click",
+    ()=>{
+
+        setControlMode("mobile");
+
+        deviceScreen.style.display=
+            "none";
+
+        buildLevelGrid();
+
+        levelScreen.style.display=
+            "flex";
+
+    }
+);
+
+
+/* =========================================================
+   GUN VISUAL
+========================================================= */
+
+function updateGunVisual(){
+
+    const rect =
+        game.getBoundingClientRect();
+
+    if(
+        !rect.width ||
+        !rect.height
+    )
+        return;
+
+    const nx =
+        mouseX/
+        rect.width*
+        2-1;
+
+    const ny =
+        mouseY/
+        rect.height*
+        2-1;
+
+    const gunY =
+        ny*
+        CONFIG.gunVerticalParallax;
+
+    const gunX =
+        nx*
+        CONFIG.gunHorizontalParallax;
+
+    gun.style.setProperty(
+        "--gun-y",
+        `${gunY}px`
+    );
+
+    gun.style.setProperty(
+        "--gun-x",
+        `${gunX}px`
+    );
+
+}
+
+
+/* =========================================================
+   UPDATE AIM / CAMERA
+========================================================= */
+
+function applyAim(){
+
+    aimRaf=0;
+
+    mouseX +=
+        (targetMouseX-mouseX)*
+        .35;
+
+    mouseY +=
+        (targetMouseY-mouseY)*
+        .35;
+
+    crosshair.style.left =
+        `${mouseX}px`;
+
+    crosshair.style.top =
+        `${mouseY}px`;
+
+    const rect =
+        game.getBoundingClientRect();
+
+    const nx =
+        mouseX/
+        rect.width*
+        2-1;
+
+    const ny =
+        mouseY/
+        rect.height*
+        2-1;
+
+    const maxCameraX =
+        Math.max(
+            0,
+            worldWidth-
+            rect.width
+        );
+
+    const cameraX =
+        -(
+            (nx+1)/2
+        )*
+        maxCameraX;
+
+    const cameraY =
+        ny*
+        CONFIG.worldVerticalParallax;
+
+    world.style.transform =
+        `translate3d(
+            ${cameraX}px,
+            ${cameraY}px,
+            0
+        )`;
+
+    updateGunVisual();
+
+}
+
+
+function scheduleAim(){
+
+    if(!aimRaf){
+
+        aimRaf =
+            requestAnimationFrame(
+                applyAim
+            );
+
+    }
+
+}
+
+
+/* =========================================================
+   RESET GUN
+========================================================= */
+
+function resetGunFlip(){
+
+    gunFlipped=false;
+
+    gun.classList.remove(
+        "flipped"
+    );
+
+    flipGunButton.classList.remove(
+        "flipped"
+    );
+
+    flipGunButton.textContent =
+        "↔ FLIP GUN";
+
+    muzzleFlash.classList.remove(
+        "left-side"
+    );
+
+}
+
+
+/* =========================================================
+   FLIP GUN
+========================================================= */
+
+flipGunButton.addEventListener(
+    "click",
+    event=>{
+
+        event.stopPropagation();
+
+        if(!running)
+            return;
+
+        gunFlipped =
+            !gunFlipped;
+
+        gun.classList.toggle(
+            "flipped",
+            gunFlipped
+        );
+
+        flipGunButton.classList.toggle(
+            "flipped",
+            gunFlipped
+        );
+
+        muzzleFlash.classList.toggle(
+            "left-side",
+            gunFlipped
+        );
+
+        updateGunVisual();
+
+    }
+);
+
+
+/* =========================================================
+   SHOW DASHBOARD
+========================================================= */
+
+function showDashboard(){
+
+    running=false;
+
+    stopEnemyAttack();
+
+    clearEnemies();
+
+    resetGunFlip();
+
+    resultScreen.style.display=
+        "none";
+
+    levelScreen.style.display=
+        "none";
+
+    startScreen.style.display=
+        "none";
+
+    deviceScreen.style.display=
+        "none";
+
+    exitConfirm.style.display=
+        "none";
+
+    mobileFireButton.classList.remove(
+        "visible"
+    );
+
+    dashboard.style.display=
+        "flex";
+
+    updateDashboard();
+
+}
+
+
+/* =========================================================
+   BATTLE BUTTON
+========================================================= */
+
+/*
+   IMPORTANT FLOW:
+
+   BATTLE
+      ↓
+   DEVICE SELECT
+      ↓
+   LEVELS
+      ↓
+   START BATTLE
+*/
+
+battleButton.addEventListener(
+    "click",
+    ()=>{
+
+        dashboard.style.display=
+            "none";
+
+        deviceScreen.style.display=
+            "flex";
+
+    }
+);
+
+
+/* =========================================================
+   BACK
+========================================================= */
+
+levelBack.addEventListener(
+    "click",
+    ()=>{
+
+        levelScreen.style.display=
+            "none";
+
+        showDashboard();
+
+    }
+);
+
+
+/* =========================================================
+   INFINITE LEVEL GRID
+========================================================= */
+
+const LEVEL_PAGE_SIZE=60;
+
+let levelGridBuilt=0;
+
+
+function createLevelButton(i){
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+    button.className=
+        "level-button";
+
+    button.dataset.level=
+        i;
+
+    const unlocked =
+        i<=savedData.unlockedLevel;
+
+    const completed =
+        savedData.completedLevels[i];
+
+    if(!unlocked)
+        button.classList.add(
+            "locked"
+        );
+
+    if(completed)
+        button.classList.add(
+            "completed"
+        );
+
+
+    const number =
+        document.createElement(
+            "div"
+        );
+
+    number.className=
+        "level-number";
+
+    number.textContent=i;
+
+
+    const mapName =
+        document.createElement(
+            "div"
+        );
+
+    mapName.className=
+        "level-map";
+
+    mapName.textContent =
+        getMapType(i)
+            .toUpperCase();
+
+
+    const levelStars =
+        document.createElement(
+            "div"
+        );
+
+    levelStars.className=
+        "level-stars";
+
+
+    if(completed){
+
+        const earned =
+            Number(completed);
+
+        levelStars.textContent =
+            "★".repeat(earned)+
+            "☆".repeat(
+                3-earned
+            );
+
+    }else{
+
+        levelStars.textContent=
+            "☆☆☆";
+
+    }
+
+
+    button.appendChild(
+        number
+    );
+
+    button.appendChild(
+        mapName
+    );
+
+    button.appendChild(
+        levelStars
+    );
+
+
+    if(!unlocked){
+
+        const lock =
+            document.createElement(
+                "div"
+            );
+
+        lock.className=
+            "lock";
+
+        lock.textContent=
+            "🔒";
+
+        button.appendChild(
+            lock
+        );
+
+    }
+
+
+    if(unlocked){
+
+        button.addEventListener(
+            "click",
+            ()=>{
+
+                chooseLevel(i);
+
+            }
+        );
+
+    }
+
+
+    return button;
+
+}
+
+
+function appendLevelButtons(
+    count=LEVEL_PAGE_SIZE
+){
+
+    const start =
+        levelGridBuilt+1;
+
+    const end =
+        levelGridBuilt+
+        count;
+
+    const fragment =
+        document.createDocumentFragment();
+
+    for(
+        let i=start;
+        i<=end;
+        i++
+    ){
+
+        fragment.appendChild(
+            createLevelButton(i)
+        );
+
+    }
+
+    levelGrid.appendChild(
+        fragment
+    );
+
+    levelGridBuilt=
+        end;
+
+}
+
+
+/* =========================================================
+   BUILD LEVEL GRID
+========================================================= */
+
+function buildLevelGrid(){
+
+    levelGrid.innerHTML=
+        "";
+
+    levelGridBuilt=0;
+
+    appendLevelButtons();
+
+    currentLevelButton.textContent=
+        `CURRENT: ${savedData.unlockedLevel}`;
+
+}
+
+
+/* =========================================================
+   LOAD UNTIL CURRENT LEVEL EXISTS
+========================================================= */
+
+function loadUntilLevel(
+    target
+){
+
+    while(
+        levelGridBuilt<
+        target
+    ){
+
+        appendLevelButtons();
+
+    }
+
+}
+
+
+/* =========================================================
+   CURRENT LEVEL BUTTON
+========================================================= */
+
+currentLevelButton.addEventListener(
+    "click",
+    ()=>{
+
+        loadUntilLevel(
+            savedData.unlockedLevel
+        );
+
+        requestAnimationFrame(
+            ()=>{
+
+                const target =
+                    levelGrid.querySelector(
+                        `[data-level="${savedData.unlockedLevel}"]`
+                    );
+
+                if(target){
+
+                    target.scrollIntoView({
+                        behavior:"smooth",
+                        block:"center"
+                    });
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+/* =========================================================
+   INFINITE SCROLL
+========================================================= */
+
+levelGrid.addEventListener(
+    "scroll",
+    ()=>{
+
+        if(
+            levelGrid.scrollTop+
+            levelGrid.clientHeight >=
+            levelGrid.scrollHeight-
+            500
+        ){
+
+            appendLevelButtons();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   CHOOSE LEVEL
+========================================================= */
+
+function chooseLevel(lvl){
+
+    level=lvl;
+
+    levelScreen.style.display=
+        "none";
+
+    prepareLevel();
+
+}
+
+
+/* =========================================================
+   PREPARE LEVEL
+========================================================= */
+
+function prepareLevel(){
+
+    running=false;
+
+    stopEnemyAttack();
+
+    clearEnemies();
+
+    healthValue=100;
+
+    levelKills=0;
+
+    drinkAvailable=true;
+
+    victoryTriggered=false;
+
+    resetGunFlip();
+
+    drinkButton.classList.remove(
+        "used"
+    );
+
+    drinkCount.textContent=
+        "READY";
+
+    health.style.width=
+        "100%";
+
+    healthText.textContent=
+        "100%";
+
+    stars.textContent=
+        "★★★";
+
+    levelText.textContent=
+        level;
+
+    enemyText.textContent=
+        `0 / ${getEnemyCount(level)}`;
+
+    killText.textContent=
+        "0";
+
+    setMap(level);
+
+    startLogo.textContent=
+        "LEVEL "+level;
+
+    startSub.innerHTML=`
+
+        <b>${getMapName(level)}</b>
+
+        <br><br>
+
+        ENEMIES:
+        <b>${getEnemyCount(level)}</b>
+
+        <br><br>
+
+        ${controlMode==="pc"
+            ? "MOUSE AIM • LEFT CLICK FIRE"
+            : "TOUCH AIM • FIRE BUTTON"
+        }
+
+        <br><br>
+
+        THE ENEMIES ARE FAR AWAY.
+        <br>
+        CLEAR THE BATTLEFIELD.
+
+    `;
+
+    startButton.textContent=
+        "START BATTLE";
+
+    resultScreen.style.display=
+        "none";
+
+    startScreen.style.display=
+        "flex";
+
+}
+
+
+/* =========================================================
+   START BATTLE
+========================================================= */
+
+startButton.addEventListener(
+    "click",
+    ()=>{
+
+        startScreen.style.display=
+            "none";
+
+        running=true;
+
+        createEnemies();
+
+        startEnemyAttack();
+
+    }
+);
+
+
+/* =========================================================
+   CREATE ENEMIES
+========================================================= */
+
+function createEnemies(){
+
+    clearEnemies();
+
+    const total =
+        getEnemyCount(level);
+
+    const fragment =
+        document.createDocumentFragment();
+
+    for(
+        let i=0;
+        i<total;
+        i++
+    ){
+
+        const position =
+            getEnemyPosition(
+                i,
+                total
+            );
+
+
+        const enemy =
+            document.createElement(
+                "div"
+            );
+
+        enemy.className=
+            "enemy";
+
+
+        let size=78;
+
+        if(total>=20)
+            size=72;
+
+        if(total>=50)
+            size=65;
+
+        if(total>=100)
+            size=58;
+
+        size +=
+            Math.random()*10-5;
+
+
+        enemy.style.width=
+            `${size}px`;
+
+        enemy.style.left=
+            `${position.x}%`;
+
+        enemy.style.top=
+            `${position.y}%`;
+
+
+        const image =
+            document.createElement(
+                "img"
+            );
+
+        image.src=
+            ENEMY_IMAGES[
+                i%
+                ENEMY_IMAGES.length
+            ];
+
+        image.draggable=false;
+
+
+        enemy.appendChild(
+            image
+        );
+
+
+        const healthBox =
+            document.createElement(
+                "div"
+            );
+
+        healthBox.className=
+            "enemy-health";
+
+
+        const healthFill =
+            document.createElement(
+                "div"
+            );
+
+        healthFill.className=
+            "enemy-health-fill";
+
+
+        healthBox.appendChild(
+            healthFill
+        );
+
+        enemy.appendChild(
+            healthBox
+        );
+
+
+        const maxHp =
+            CONFIG.normalHP;
+
+
+        const data={
+
+            element:enemy,
+
+            hp:maxHp,
+
+            maxHp:maxHp,
+
+            alive:true,
+
+            x:position.x,
+
+            y:position.y,
+
+            radarDot:null
+
+        };
+
+
+        enemy.addEventListener(
+            "pointerdown",
+            event=>{
+
+                /*
+                   In PC mode:
+                   Clicking an enemy directly fires.
+
+                   In mobile mode:
+                   Do NOT fire by touching enemy.
+                   Mobile uses FIRE button.
+                */
+
+                if(
+                    controlMode==="pc" &&
+                    event.pointerType==="mouse" &&
+                    event.button===0 &&
+                    running
+                ){
+
+                    event.stopPropagation();
+
+                    updateAimImmediately(
+                        event.clientX,
+                        event.clientY
+                    );
+
+                    fireWeapon();
+
+                }
+
+            }
+        );
+
+
+        fragment.appendChild(
+            enemy
+        );
+
+        enemies.push(
+            data
+        );
+
+    }
+
+
+    enemyLayer.appendChild(
+        fragment
+    );
+
+    updateHUD();
+
+    updateRadar();
+
+}
+
+
+/* =========================================================
+   IMMEDIATE AIM
+========================================================= */
+
+function updateAimImmediately(
+    clientX,
+    clientY
+){
+
+    const rect =
+        game.getBoundingClientRect();
+
+    targetMouseX =
+        clientX-
+        rect.left;
+
+    targetMouseY =
+        clientY-
+        rect.top;
+
+    mouseX=
+        targetMouseX;
+
+    mouseY=
+        targetMouseY;
+
+    applyAim();
+
+}
+
+
+/* =========================================================
+   HIT ENEMY
+========================================================= */
+
+function hitEnemy(enemy){
+
+    if(
+        !running ||
+        !enemy.alive
+    )
+        return;
+
+
+    enemy.hp -=
+        CONFIG.playerDamagePerShot;
+
+
+    const fill =
+        enemy.element.querySelector(
+            ".enemy-health-fill"
+        );
+
+
+    fill.style.width =
+        `${Math.max(
+            0,
+            enemy.hp/
+            enemy.maxHp*
+            100
+        )}%`;
+
+
+    enemy.element.classList.add(
+        "hit"
+    );
+
+
+    setTimeout(
+        ()=>{
+
+            enemy.element.classList.remove(
+                "hit"
+            );
+
+        },
+        80
+    );
+
+
+    createDamageNumber(
+        enemy,
+        "-2"
+    );
+
+
+    if(enemy.hp<=0){
+
+        killEnemy(enemy);
+
+    }
+
+}
+
+
+/* =========================================================
+   KILL
+========================================================= */
+
+function killEnemy(enemy){
+
+    if(!enemy.alive)
+        return;
+
+    enemy.alive=false;
+
+    enemy.element.classList.add(
+        "dead"
+    );
+
+    enemy.element.style.pointerEvents=
+        "none";
+
+    levelKills++;
+
+    savedData.totalKills++;
+
+    saveData();
+
+    updateHUD();
+
+
+    if(enemy.radarDot){
+
+        enemy.radarDot.style.display=
+            "none";
+
+    }
+
+
+    if(
+        levelKills >=
+        getEnemyCount(level)
+    ){
+
+        setTimeout(
+            victory,
+            450
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SOUND
+========================================================= */
+
+function playHeroSound(){
+
+    try{
+
+        heroSound.currentTime=0;
+
+        heroSound.play();
+
+    }catch(error){}
+
+}
+
+
+function playEnemySound(){
+
+    try{
+
+        enemySound.currentTime=0;
+
+        enemySound.play();
+
+    }catch(error){}
+
+}
+
+
+/* =========================================================
+   FIRE SPRINKLE
+   NO GUN RECOIL
+========================================================= */
+
+function createFireParticles(){
+
+    const gunRect =
+        gun.getBoundingClientRect();
+
+    let nozzleX;
+
+    let nozzleY;
+
+
+    if(gunFlipped){
+
+        /*
+           LEFT SIDE
+        */
+
+        nozzleX =
+            gunRect.left+
+            gunRect.width*.42;
+
+    }else{
+
+        /*
+           RIGHT SIDE
+        */
+
+        nozzleX =
+            gunRect.right-
+            gunRect.width*.42;
+
+    }
+
+
+    nozzleY =
+        gunRect.top+
+        gunRect.height*.22;
+
+
+    /*
+       Create several tiny sparks
+       around the nozzle.
+    */
+
+    for(
+        let i=0;
+        i<CONFIG.fireParticleCount;
+        i++
+    ){
+
+        const particle =
+            document.createElement(
+                "div"
+            );
+
+        particle.className=
+            "fire-particle";
+
+
+        const spreadX =
+            (Math.random()-.5)*
+            35;
+
+        const spreadY =
+            -(
+                Math.random()*
+                35+
+                8
+            );
+
+
+        particle.style.left=
+            `${nozzleX}px`;
+
+        particle.style.top=
+            `${nozzleY}px`;
+
+
+        particle.style.setProperty(
+            "--px",
+            `${spreadX}px`
+        );
+
+        particle.style.setProperty(
+            "--py",
+            `${spreadY}px`
+        );
+
+
+        /*
+           Slightly different particle sizes.
+        */
+
+        const size =
+            3+
+            Math.random()*5;
+
+        particle.style.width=
+            `${size}px`;
+
+        particle.style.height=
+            `${size}px`;
+
+
+        fireParticles.appendChild(
+            particle
+        );
+
+
+        setTimeout(
+            ()=>{
+                particle.remove();
+            },
+            380
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   FIRE VISUAL
+========================================================= */
+
+function fireVisual(){
+
+    /*
+       Muzzle flash is at nozzle only.
+       Gun itself never animates.
+    */
+
+    muzzleFlash.classList.remove(
+        "fire"
+    );
+
+    void muzzleFlash.offsetWidth;
+
+    muzzleFlash.classList.add(
+        "fire"
+    );
+
+
+    createFireParticles();
+
+}
+
+
+/* =========================================================
+   FIND CLOSEST TARGET
+========================================================= */
+
+function findClosestEnemy(){
+
+    let closest=null;
+
+    let distance=Infinity;
+
+
+    enemies.forEach(
+        enemy=>{
+
+            if(!enemy.alive)
+                return;
+
+
+            const rect =
+                enemy.element
+                    .getBoundingClientRect();
+
+
+            const x =
+                rect.left+
+                rect.width/2;
+
+            const y =
+                rect.top+
+                rect.height/2;
+
+
+            const dx =
+                x-mouseX;
+
+            const dy =
+                y-mouseY;
+
+
+            const d =
+                Math.sqrt(
+                    dx*dx+
+                    dy*dy
+                );
+
+
+            if(d<distance){
+
+                distance=d;
+
+                closest=enemy;
+
+            }
+
+        }
+    );
+
+
+    return {
+        enemy:closest,
+        distance
+    };
+
+}
+
+
+/* =========================================================
+   FIRE WEAPON
+========================================================= */
+
+function fireWeapon(){
+
+    if(!running)
+        return;
+
+
+    playHeroSound();
+
+    fireVisual();
+
+
+    const result =
+        findClosestEnemy();
+
+
+    const closest =
+        result.enemy;
+
+    const distance =
+        result.distance;
+
+
+    if(
+        closest &&
+        distance<
+        CONFIG.hitDistance
+    ){
+
+        createProjectile(
+            closest
+        );
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    running &&
+                    closest.alive
+                ){
+
+                    hitEnemy(
+                        closest
+                    );
+
+                }
+
+            },
+            CONFIG.projectileDuration-20
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   PC FIRE
+========================================================= */
+
+game.addEventListener(
+    "pointerdown",
+    event=>{
+
+        if(
+            controlMode!=="pc" ||
+            event.pointerType!=="mouse" ||
+            event.button!==0 ||
+            !running
+        )
+            return;
+
+
+        if(
+            event.target.closest(
+                "button"
+            )
+        )
+            return;
+
+
+        if(
+            event.target.closest(
+                ".enemy"
+            )
+        )
+            return;
+
+
+        updateAimImmediately(
+            event.clientX,
+            event.clientY
+        );
+
+
+        fireWeapon();
+
+    }
+);
+
+
+/* =========================================================
+   MOBILE TOUCH AIM
+========================================================= */
+
+game.addEventListener(
+    "pointermove",
+    event=>{
+
+        if(
+            controlMode!=="mobile" ||
+            !running
+        )
+            return;
+
+
+        if(
+            event.pointerType!=="touch"
+        )
+            return;
+
+
+        if(
+            event.target.closest(
+                "button"
+            )
+        )
+            return;
+
+
+        const rect =
+            game.getBoundingClientRect();
+
+
+        targetMouseX =
+            event.clientX-
+            rect.left;
+
+        targetMouseY =
+            event.clientY-
+            rect.top;
+
+
+        scheduleAim();
+
+    }
+);
+
+
+/* =========================================================
+   MOBILE TOUCH START
+========================================================= */
+
+game.addEventListener(
+    "pointerdown",
+    event=>{
+
+        if(
+            controlMode!=="mobile" ||
+            !running
+        )
+            return;
+
+
+        if(
+            event.pointerType!=="touch"
+        )
+            return;
+
+
+        if(
+            event.target.closest(
+                "button"
+            )
+        )
+            return;
+
+
+        const rect =
+            game.getBoundingClientRect();
+
+
+        targetMouseX =
+            event.clientX-
+            rect.left;
+
+        targetMouseY =
+            event.clientY-
+            rect.top;
+
+
+        mouseX=
+            targetMouseX;
+
+        mouseY=
+            targetMouseY;
+
+
+        applyAim();
+
+    }
+);
+
+
+/* =========================================================
+   MOBILE FIRE BUTTON
+========================================================= */
+
+mobileFireButton.addEventListener(
+    "pointerdown",
+    event=>{
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        if(
+            controlMode!=="mobile" ||
+            !running
+        )
+            return;
+
+
+        fireWeapon();
+
+    }
+);
+
+
+/* =========================================================
+   PROJECTILE
+========================================================= */
+
+function createProjectile(enemy){
+
+    const bullet =
+        document.createElement(
+            "div"
+        );
+
+    bullet.className=
+        "projectile";
+
+
+    const gunRect =
+        gun.getBoundingClientRect();
+
+    const targetRect =
+        enemy.element
+            .getBoundingClientRect();
+
+
+    let sx;
+
+    let sy;
+
+
+    if(gunFlipped){
+
+        sx =
+            gunRect.left+
+            gunRect.width*.42;
+
+    }else{
+
+        sx =
+            gunRect.right-
+            gunRect.width*.42;
+
+    }
+
+
+    sy =
+        gunRect.top+
+        gunRect.height*.22;
+
+
+    const ex =
+        targetRect.left+
+        targetRect.width/2;
+
+    const ey =
+        targetRect.top+
+        targetRect.height/2;
+
+
+    bullet.style.left=
+        `${sx}px`;
+
+    bullet.style.top=
+        `${sy}px`;
+
+
+    const dx=
+        ex-sx;
+
+    const dy=
+        ey-sy;
+
+
+    const angle=
+        Math.atan2(
+            dy,
+            dx
+        )*
+        180/
+        Math.PI;
+
+
+    bullet.style.transform=
+        `
+        translate(-50%,-50%)
+        rotate(${angle}deg)
+        `;
+
+
+    document.body.appendChild(
+        bullet
+    );
+
+
+    const animation =
+        bullet.animate(
+
+            [
+                {
+                    left:`${sx}px`,
+                    top:`${sy}px`
+                },
+
+                {
+                    left:`${ex}px`,
+                    top:`${ey}px`
+                }
+            ],
+
+            {
+                duration:
+                    CONFIG.projectileDuration,
+
+                easing:"linear"
+            }
+
+        );
+
+
+    animation.onfinish=()=>{
+        bullet.remove();
+    };
+
+}
+
+
+/* =========================================================
+   ENEMY ATTACK
+========================================================= */
+
+function startEnemyAttack(){
+
+    stopEnemyAttack();
+
+
+    attackTimer =
+        setInterval(
+            ()=>{
+
+                if(!running)
+                    return;
+
+
+                const alive =
+                    enemies.filter(
+                        e=>e.alive
+                    );
+
+
+                if(!alive.length)
+                    return;
+
+
+                enemyAttack();
+
+            },
+            CONFIG.enemyAttackInterval
+        );
+
+}
+
+
+function stopEnemyAttack(){
+
+    if(attackTimer){
+
+        clearInterval(
+            attackTimer
+        );
+
+        attackTimer=null;
+
+    }
+
+}
+
+
+/* =========================================================
+   ENEMY ATTACK
+========================================================= */
+
+function enemyAttack(){
+
+    const alive =
+        enemies.filter(
+            e=>e.alive
+        );
+
+
+    if(!alive.length)
+        return;
+
+
+    playEnemySound();
+
+
+    healthValue -=
+        CONFIG.enemyDamage;
+
+
+    healthValue =
+        Math.max(
+            0,
+            healthValue
+        );
+
+
+    updateHealth();
+
+
+    damageFlash.classList.remove(
+        "active"
+    );
+
+    void damageFlash.offsetWidth;
+
+    damageFlash.classList.add(
+        "active"
+    );
+
+
+    const attacker =
+        alive[
+            Math.floor(
+                Math.random()*
+                alive.length
+            )
+        ];
+
+
+    createDamageNumber(
+        attacker,
+        "-1%"
+    );
+
+
+    if(
+        healthValue<=0
+    ){
+
+        defeat();
+
+    }
+
+}
+
+
+/* =========================================================
+   HEALTH
+========================================================= */
+
+function updateHealth(){
+
+    health.style.width=
+        `${healthValue}%`;
+
+    healthText.textContent=
+        `${Math.ceil(
+            healthValue
+        )}%`;
+
+
+    if(
+        healthValue<=25
+    ){
+
+        health.style.background=
+            "linear-gradient(90deg,#e83333,#ff6969)";
+
+    }else if(
+        healthValue<=50
+    ){
+
+        health.style.background=
+            "linear-gradient(90deg,#e6a72c,#ffd34d)";
+
+    }else{
+
+        health.style.background=
+            "linear-gradient(90deg,#21c76b,#69e681)";
+
+    }
+
+}
+
+
+/* =========================================================
+   EMERGENCY BOOST
+========================================================= */
+
+drinkButton.addEventListener(
+    "click",
+    event=>{
+
+        event.stopPropagation();
+
+        if(
+            !running ||
+            !drinkAvailable
+        )
+            return;
+
+
+        drinkAvailable=false;
+
+
+        healthValue=
+            Math.min(
+                100,
+                healthValue+50
+            );
+
+
+        updateHealth();
+
+
+        drinkButton.classList.add(
+            "used"
+        );
+
+
+        drinkCount.textContent=
+            "USED";
+
+
+        health.style.filter=
+            "brightness(1.7)";
+
+
+        setTimeout(
+            ()=>{
+
+                health.style.filter="";
+
+            },
+            300
+        );
+
+    }
+);
+
+
+/* =========================================================
+   DAMAGE NUMBER
+========================================================= */
+
+function createDamageNumber(
+    enemy,
+    text
+){
+
+    const rect =
+        enemy.element
+            .getBoundingClientRect();
+
+
+    const number =
+        document.createElement(
+            "div"
+        );
+
+
+    number.className=
+        "damage-number";
+
+
+    number.textContent=
+        text;
+
+
+    number.style.left=
+        `${
+            rect.left+
+            rect.width/2
+        }px`;
+
+
+    number.style.top=
+        `${
+            rect.top+
+            rect.height/3
+        }px`;
+
+
+    document.body.appendChild(
+        number
+    );
+
+
+    setTimeout(
+        ()=>{
+            number.remove();
+        },
+        500
+    );
+
+}
+
+
+/* =========================================================
+   HUD
+========================================================= */
+
+function updateHUD(){
+
+    levelText.textContent=
+        level;
+
+    enemyText.textContent=
+        `${levelKills} / ${getEnemyCount(level)}`;
+
+    killText.textContent=
+        levelKills;
+
+}
+
+
+/* =========================================================
+   RADAR
+========================================================= */
+
+function updateRadar(){
+
+    radarTrack
+        .querySelectorAll(
+            ".radar-enemy"
+        )
+        .forEach(
+            dot=>dot.remove()
+        );
+
+
+    const fragment =
+        document.createDocumentFragment();
+
+
+    enemies.forEach(
+        enemy=>{
+
+            if(!enemy.alive)
+                return;
+
+
+            const dot =
+                document.createElement(
+                    "div"
+                );
+
+
+            dot.className=
+                "radar-enemy";
+
+
+            dot.style.left=
+                `${enemy.x}%`;
+
+
+            enemy.radarDot=
+                dot;
+
+
+            fragment.appendChild(
+                dot
+            );
+
+        }
+    );
+
+
+    radarTrack.appendChild(
+        fragment
+    );
+
+}
+
+
+/* =========================================================
+   MOUSE AIM
+========================================================= */
+
+game.addEventListener(
+    "pointermove",
+    event=>{
+
+        if(
+            controlMode!=="pc" ||
+            event.pointerType!=="mouse"
+        )
+            return;
+
+
+        const rect =
+            game.getBoundingClientRect();
+
+
+        targetMouseX =
+            event.clientX-
+            rect.left;
+
+        targetMouseY =
+            event.clientY-
+            rect.top;
+
+
+        scheduleAim();
+
+    }
+);
+
+
+/* =========================================================
+   CONTEXT MENU
+========================================================= */
+
+game.addEventListener(
+    "contextmenu",
+    event=>{
+
+        event.preventDefault();
+
+    }
+);
+
+
+/* =========================================================
+   STARS
+========================================================= */
+
+function calculateStars(){
+
+    if(healthValue>75)
+        return 3;
+
+    if(healthValue>35)
+        return 2;
+
+    return 1;
+
+}
+
+
+/* =========================================================
+   VICTORY
+========================================================= */
+
+function victory(){
+
+    if(victoryTriggered)
+        return;
+
+
+    victoryTriggered=true;
+
+    running=false;
+
+    stopEnemyAttack();
+
+
+    const earnedStars =
+        calculateStars();
+
+
+    const oldStars =
+        Number(
+            savedData.completedLevels[
+                level
+            ] || 0
+        );
+
+
+    if(
+        earnedStars>
+        oldStars
+    ){
+
+        const difference =
+            earnedStars-
+            oldStars;
+
+
+        savedData.totalStars +=
+            difference;
+
+
+        savedData.completedLevels[
+            level
+        ] =
+            earnedStars;
+
+    }
+
+
+    /*
+       NO MAXIMUM LEVEL
+    */
+
+    savedData.unlockedLevel=
+        Math.max(
+            savedData.unlockedLevel,
+            level+1
+        );
+
+
+    saveData();
+
+
+    stars.textContent=
+        "★".repeat(
+            earnedStars
+        )+
+        "☆".repeat(
+            3-earnedStars
+        );
+
+
+    resultTitle.textContent=
+        "VICTORY";
+
+
+    resultText.innerHTML=`
+
+        <b>LEVEL ${level} COMPLETED</b>
+
+        <br><br>
+
+        Enemies defeated:
+        <b>${levelKills}</b>
+
+        <br>
+
+        Health remaining:
+        <b>${Math.ceil(
+            healthValue
+        )}%</b>
+
+        <br>
+
+        Stars earned:
+        <b>
+            ${"★".repeat(
+                earnedStars
+            )}
+        </b>
+
+    `;
+
+
+    resultButton.textContent=
+        "NEXT LEVEL";
+
+
+    resultButton.onclick=()=>{
+
+        resultScreen.style.display=
+            "none";
+
+        level++;
+
+        prepareLevel();
+
+    };
+
+
+    resultScreen.style.display=
+        "flex";
+
+}
+
+
+/* =========================================================
+   DEFEAT
+========================================================= */
+
+function defeat(){
+
+    if(!running)
+        return;
+
+
+    running=false;
+
+    stopEnemyAttack();
+
+
+    resultTitle.textContent=
+        "MISSION FAILED";
+
+
+    resultText.innerHTML=`
+
+        You were defeated.
+
+        <br><br>
+
+        LEVEL:
+        <b>${level}</b>
+
+        <br>
+
+        Enemies defeated:
+        <b>${levelKills}</b>
+
+        <br>
+
+        Health:
+        <b>0%</b>
+
+    `;
+
+
+    resultButton.textContent=
+        "RETRY LEVEL";
+
+
+    resultButton.onclick=()=>{
+
+        resultScreen.style.display=
+            "none";
+
+        prepareLevel();
+
+    };
+
+
+    resultScreen.style.display=
+        "flex";
+
+}
+
+
+/* =========================================================
+   CLEAR ENEMIES
+========================================================= */
+
+function clearEnemies(){
+
+    enemies=[];
+
+    enemyLayer.innerHTML=
+        "";
+
+    radarTrack
+        .querySelectorAll(
+            ".radar-enemy"
+        )
+        .forEach(
+            dot=>dot.remove()
+        );
+
+}
+
+
+/* =========================================================
+   RESET CAMERA
+========================================================= */
+
+function resetCamera(){
+
+    const rect =
+        game.getBoundingClientRect();
+
+
+    mouseX =
+        rect.width/2;
+
+    mouseY =
+        rect.height/2;
+
+
+    targetMouseX=
+        mouseX;
+
+    targetMouseY=
+        mouseY;
+
+
+    world.style.transform=
+        "translate3d(0,0,0)";
+
+
+    gun.style.setProperty(
+        "--gun-x",
+        "0px"
+    );
+
+
+    gun.style.setProperty(
+        "--gun-y",
+        "0px"
+    );
+
+
+    crosshair.style.left=
+        `${mouseX}px`;
+
+
+    crosshair.style.top=
+        `${mouseY}px`;
+
+
+    updateGunVisual();
+
+}
+
+
+/* =========================================================
+   EXIT CONFIRMATION — STEP 1
+========================================================= */
+
+function openExitConfirmation(){
+
+    if(!running)
+        return;
+
+
+    exitStep=1;
+
+    /*
+       Pause enemy attacks while
+       confirmation is open.
+    */
+
+    stopEnemyAttack();
+
+    exitPaused=true;
+
+
+    confirmTitle.textContent=
+        "EXIT BATTLE?";
+
+
+    confirmText.innerHTML=
+        `
+        Are you sure you want to exit?
+        <br>
+        Your current battle progress will not be saved.
+        `;
+
+
+    cancelExit.textContent=
+        "NO, CONTINUE";
+
+
+    confirmExit.textContent=
+        "YES, EXIT";
+
+
+    exitConfirm.style.display=
+        "flex";
+
+}
+
+
+/* =========================================================
+   EXIT STEP 2
+========================================================= */
+
+function secondExitConfirmation(){
+
+    exitStep=2;
+
+
+    confirmTitle.textContent=
+        "CONFIRM EXIT";
+
+
+    confirmText.innerHTML=
+        `
+        One more confirmation.
+        <br><br>
+        Exit this battle and return to the dashboard?
+        `;
+
+
+    cancelExit.textContent=
+        "GO BACK";
+
+
+    confirmExit.textContent=
+        "EXIT NOW";
+
+}
+
+
+/* =========================================================
+   CLOSE EXIT
+========================================================= */
+
+function closeExitConfirmation(){
+
+    exitConfirm.style.display=
+        "none";
+
+    if(
+        running &&
+        exitPaused
+    ){
+
+        startEnemyAttack();
+
+    }
+
+    exitPaused=false;
+
+    exitStep=0;
+
+}
+
+
+/* =========================================================
+   PERFORM EXIT
+========================================================= */
+
+function performExit(){
+
+    exitConfirm.style.display=
+        "none";
+
+    exitPaused=false;
+
+    exitStep=0;
+
+    running=false;
+
+    stopEnemyAttack();
+
+    clearEnemies();
+
+    resultScreen.style.display=
+        "none";
+
+    startScreen.style.display=
+        "none";
+
+    levelScreen.style.display=
+        "none";
+
+    deviceScreen.style.display=
+        "none";
+
+    showDashboard();
+
+}
+
+
+/* =========================================================
+   EXIT BUTTON
+========================================================= */
+
+exitGame.addEventListener(
+    "click",
+    event=>{
+
+        event.stopPropagation();
+
+        if(!running)
+            return;
+
+        openExitConfirmation();
+
+    }
+);
+
+
+/* =========================================================
+   CANCEL / GO BACK
+========================================================= */
+
+cancelExit.addEventListener(
+    "click",
+    event=>{
+
+        event.stopPropagation();
+
+
+        if(exitStep===1){
+
+            closeExitConfirmation();
+
+        }else{
+
+            openExitConfirmation();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   CONFIRM / EXIT
+========================================================= */
+
+confirmExit.addEventListener(
+    "click",
+    event=>{
+
+        event.stopPropagation();
+
+
+        if(exitStep===1){
+
+            secondExitConfirmation();
+
+        }else{
+
+            performExit();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   ESCAPE
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event=>{
+
+        if(
+            event.key==="Escape" &&
+            exitConfirm.style.display==="flex"
+        ){
+
+            closeExitConfirmation();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   FPS MONITOR
+========================================================= */
+
+function fpsLoop(now){
+
+    if(running){
+
+        fpsFrames++;
+
+    }
+
+
+    const elapsed =
+        now-
+        fpsLastTime;
+
+
+    if(
+        elapsed>=500
+    ){
+
+        if(running){
+
+            fpsDisplay=
+                Math.round(
+                    fpsFrames/
+                    (elapsed/1000)
+                );
+
+        }else{
+
+            fpsDisplay=60;
+
+        }
+
+
+        fpsFrames=0;
+
+        fpsLastTime=now;
+
+
+        fpsValue.textContent=
+            fpsDisplay;
+
+
+        fpsValue.classList.toggle(
+            "warning",
+            fpsDisplay<50 &&
+            fpsDisplay>=30
+        );
+
+
+        fpsValue.classList.toggle(
+            "bad",
+            fpsDisplay<30
+        );
+
+    }
+
+
+    requestAnimationFrame(
+        fpsLoop
+    );
+
+}
+
+
+requestAnimationFrame(
+    fpsLoop
+);
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+window.addEventListener(
+    "resize",
+    ()=>{
+
+        sizePanorama();
+
+    }
+);
+
+
+/* =========================================================
+   PANORAMA LOAD
+========================================================= */
+
+panorama.addEventListener(
+    "load",
+    ()=>{
+
+        sizePanorama();
+
+    }
+);
+
+
+/* =========================================================
+   INITIALIZATION
+========================================================= */
+
+setControlMode("pc");
+
+updateDashboard();
+
+resetGunFlip();
+
+showDashboard();
+
+setMap(1);
+
+</script>
+
+</body>
+</html>
